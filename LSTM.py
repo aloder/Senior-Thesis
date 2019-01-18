@@ -12,12 +12,24 @@ session = tf.Session(config=config)
 
 
 #%%
-data = pd.read_csv('data_out/data_formatted_02.csv')
+data = pd.read_csv('data_out/data_formatted_cleaned2.csv')
 data.date = pd.to_datetime(data.date)
-data = data.set_index('date')
+data['day_of_week'] = data.date.map(lambda x: x.dayofweek)
 data['load_actual'] = data['load']
+data = data.set_index('date')
+
+
+data['sin_time'] = np.sin(2*np.pi*data.hour/24)
+data['cos_time'] = np.cos(2*np.pi*data.hour/24)
+data['sin_day'] = np.sin(2*np.pi*data.day_of_year/365)
+data['cos_day'] = np.cos(2*np.pi*data.day_of_year/365)
+data['sin_day_of_week'] = np.sin(2*np.pi*data.day_of_week/6)
+data['cos_day_of_week'] = np.cos(2*np.pi*data.day_of_week/6)
+
 #%%
-features = ['temperature', 'load']
+features = ['temperature', 'load', 'work', 'last_week_load']
+#features += ['sin_time', 'cos_time', 'sin_day', 'cos_day', 'sin_day_of_week', 'cos_day_of_week']
+
 # 'hour', 'work',  'last_year_load', 'cloud_cover',  'last_week_load', 
 ## typical is all data up to 2018 is training and 2018 is test
 test = data['2018'].reset_index()
@@ -49,29 +61,26 @@ def normalize(features, data):
 training2 = normalize(features, training[features + [ 'load_actual']].dropna())
 test2 = normalize(features, test[features + [ 'load_actual']].dropna())
 
-SEQUENCE_SIZE = 48
+SEQUENCE_SIZE = 25
 x_train,y_train = to_sequences(SEQUENCE_SIZE, training2.values)
 x_test,y_test = to_sequences(SEQUENCE_SIZE, test2.values)
-
+print(x_train)
 
 #%%
 x_train
 
 #%%
-order = np.argsort(np.random.random(y_train.shape))
+order = np.argsort(np.random.random(y_train.shape)) 
 x_train = x_train[order]
 y_train = y_train[order]
 
 #%%
 def build_model():
-    model = keras.Sequential([
-        keras.layers.CuDNNLSTM(256, input_shape=x_train.shape[1:]),
-        keras.layers.Activation('relu'),
-        keras.layers.Dense(512),
-        keras.layers.Dense(512),
-        keras.layers.Dropout(0.2),
-        keras.layers.Dense(1)
-    ])
+    model = keras.Sequential()
+    model.add(keras.layers.CuDNNLSTM(256, input_shape=x_train.shape[1:], return_sequences=True))
+    model.add(keras.layers.CuDNNLSTM(256))
+    model.add(keras.layers.Dropout(0.2))
+    model.add(keras.layers.Dense(1))
 
     model.compile(loss='mse',
                 optimizer='adam',
@@ -84,12 +93,12 @@ x_train.shape
 #%%
 modelSave = 'models/weights-LSTM_3.hdf5'
 EPOCHS = 10000
-
+print(y_train)
 earlyStop = tf.keras.callbacks.EarlyStopping(monitor='val_loss',patience=30)
 save = tf.keras.callbacks.ModelCheckpoint(modelSave, monitor='val_loss', save_best_only=True)
 history = model.fit(x_train, y_train, epochs=EPOCHS,
                     validation_split=0.2, 
-                    batch_size=2000, verbose=2, callbacks=[earlyStop, save])
+                    batch_size=5000, verbose=2, callbacks=[earlyStop, save])
 
 #%%
 [loss,mpe] = model.evaluate(x_test, y_test, verbose=0)
