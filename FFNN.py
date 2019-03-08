@@ -307,6 +307,7 @@ def model3(input_shape):
     optimizer='adam',
     metrics=['mape'])
     return model
+    
 testModels = [
     [
         model1,
@@ -324,6 +325,7 @@ testModels = [
 
 args=parser.parse_args()
 for mt in testModels:
+    global tbText
     tbText = []
     [model, test] = mt
     args.test = test
