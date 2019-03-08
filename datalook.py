@@ -20,10 +20,13 @@ dropDays = [
 # 2016-10-18 07
 #data.drop(data['2016-11-06':'2016-11-09']).drop(data[dropDays]).plot(x='date', y=['load'], legend=True)
 data = data.set_index('date')
-data = data.drop(data['2016-11-06':'2016-11-09'].index)
-data = data.drop(data['2015-09-14':'2015-09-17'].index)
+data.drop(data['2016-11-06':'2016-11-09'].index, inplace=True)
+data.drop(data['2015-09-14':'2015-09-17'].index, inplace=True)
+
 for e in dropDays:
     data.drop(data[e].index, inplace=True)
+
 data.plot(y=['load'], legend=True)
+
 data.to_csv('data_out/data_formatted_cleaned2.csv')
 plt.show()

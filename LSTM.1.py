@@ -27,7 +27,7 @@ data['sin_day_of_week'] = np.sin(2*np.pi*data.day_of_week/6)
 data['cos_day_of_week'] = np.cos(2*np.pi*data.day_of_week/6)
 
 #%%
-features = [ 'load','temperature','sin_time', 'cos_time', 'work']
+features = [ 'load','last_day_load', 'last_week_load','temperature', 'cloud_cover']
 features2 = ['work', 'last_week_load', 'last_day_load', 'temperature', 'cloud_cover']
 features2 += ['sin_time', 'cos_time', 'sin_day', 'cos_day', 'sin_day_of_week', 'cos_day_of_week']
 
@@ -68,7 +68,7 @@ def to_sequences(seq_size, obs):
     return np.array(x), np.array(z), np.array(y)
 
 
-SEQUENCE_SIZE = 25
+SEQUENCE_SIZE = 5
 x_train,z_train,y_train = to_sequences(SEQUENCE_SIZE, training)
 x_test,z_test,y_test = to_sequences(SEQUENCE_SIZE, test)
 
@@ -85,13 +85,13 @@ def build_model():
     model = keras.Sequential()
     input1 = keras.layers.Input(shape=x_train.shape[1:])
     input2 = keras.layers.Input(shape=z_train.shape[1:])
-    model1_out = keras.layers.CuDNNLSTM(512)(keras.layers.CuDNNLSTM(512, return_sequences=True)(input1))
-    model2_out = keras.layers.Dense(256, activation='relu')(input2)
+    model1_out = keras.layers.CuDNNLSTM(256)(keras.layers.CuDNNLSTM(256, return_sequences=True)(input1))
+    model2_out = keras.layers.Dense(256, activation='tanh')(input2)
 
     concat = keras.layers.concatenate([model1_out, model2_out])
-    dense = keras.layers.Dense(256, activation='relu')(concat)
+    dense = keras.layers.Dense(256, activation='tanh')(concat)
     drop = keras.layers.Dropout(0.025)(dense)
-    out = keras.layers.Dense(1)(drop)
+    out = keras.layers.Dense(1, activation='linear')(drop)
     model = keras.models.Model(inputs=[input1, input2], outputs=out)
     model.compile(loss='mse',
                 optimizer='adam',
@@ -108,7 +108,7 @@ earlyStop = tf.keras.callbacks.EarlyStopping(monitor='val_loss',patience=200)
 save = tf.keras.callbacks.ModelCheckpoint(modelSave, monitor='val_loss', save_best_only=True)
 history = model.fit([x_train,z_train], y_train, epochs=EPOCHS,
                     validation_split=0.2, 
-                    batch_size=5000, verbose=2, callbacks=[earlyStop, save])
+                    batch_size=2000, verbose=2, callbacks=[earlyStop, save])
 
 #%%
 [loss,mpe] = model.evaluate([x_test,z_test], y_test, verbose=0)

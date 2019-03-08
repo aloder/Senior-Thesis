@@ -1,3 +1,4 @@
+@ -1,117 +0,0 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -115,3 +116,4 @@ dmypy.json
 
 # Model trained
 .hdf5
+logs/*
