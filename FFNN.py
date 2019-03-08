@@ -1,3 +1,9 @@
+import argparse
+from tensorflow import keras
+
+
+
+
 import os
 import tensorflow as tf
 from tensorflow import keras
@@ -7,7 +13,6 @@ import matplotlib.pyplot as plt
 from tensorflow.keras.callbacks import TensorBoard
 from time import time
 import datetime
-import argparse
 
 defaultVersion = '0.01'
 
@@ -31,8 +36,9 @@ parser.add_argument('--test', type=str,
                     help='What are you testing', default="none")
 parser.add_argument('--note', type=str,
                     help='any notes', default="none")
-
 tbText = []
+
+
 def get_file_path(dpath, tag, ext='csv', join = 'csv'):
     file_name = tag + '.'+ext
     folder_path = os.path.join(dpath, join)
@@ -99,7 +105,7 @@ def getFeatures():
     features += ['day_load_mean', 'day_temperature_mean']
     features += ['last_hour_load', 'last_hour_temperature']
     features += ['last_hour_temperature']
-    tbText.append(tf.summary.text('Features', tf.convert_to_tensor(str(features))))
+    tbText.append(lambda: tf.summary.text('Features', tf.convert_to_tensor(str(features))))
     return features
 
 
@@ -109,9 +115,9 @@ def datasets(data):
     testDates = [['2017-2'], ['2017-5'], ['2017-9'], ['2017-11']]
     trainingDates = [['','2016'], ['2018'], ['2017-1'], ['2017-3', '2017-4'], ['2017-6', '2017-8'], ['2017-10'], ['2017-12']]
 
-    tbText.append(tf.summary.text('Test Dates', tf.convert_to_tensor(str(testDates))))
+    tbText.append(lambda: tf.summary.text('Test Dates', tf.convert_to_tensor(str(testDates))))
 
-    tbText.append(tf.summary.text('Training Dates', tf.convert_to_tensor(str(trainingDates))))
+    tbText.append(lambda: tf.summary.text('Training Dates', tf.convert_to_tensor(str(trainingDates))))
 
     test = data['2017-2'].append(data['2017-5']).append(data['2017-9']).append(data['2017-11']).reset_index()
     training = data[:'2016'].append(data['2018']).append(data['2017-1']).append(data['2017-3':'2017-4']).append(data['2017-6':'2017-8']).append(data['2017-10']).append(data['2017-12']).reset_index()
@@ -171,7 +177,7 @@ def trainModel(
     batch_size= 5000,
     verbose=0,
     validation_split= 0.2):
-    tensorboard = TensorBoard(log_dir=STORE_PATH)
+    tensorboard = TensorBoard(log_dir=STORE_PATH, histogram_freq=32, write_grads=True, write_images=True)
 
     earlyStop = tf.keras.callbacks.EarlyStopping(monitor='val_loss',patience=patience)
     modelSave = get_file_path(STORE_PATH, 'bestTrain', 'hdf5', 'models')
@@ -190,7 +196,7 @@ def trainingTestingLoss(model, x_test, y_test, typeStr=""):
     [loss,mpe] = model.evaluate(x_test, y_test, verbose=0)
     trainingLoss = "[{}] Testing set Mean Abs percent Error: {:7.2f}".format(typeStr, mpe)
     print(trainingLoss)
-    tbText.append(tf.summary.text('Testing Loss: {}'.format(typeStr), tf.convert_to_tensor(trainingLoss)))
+    tbText.append(lambda: tf.summary.text('Testing Loss: {}'.format(typeStr), tf.convert_to_tensor(trainingLoss)))
 
 def generatePredictions(model, data, x_data, features):
     predictions = model.predict(x_data).flatten()
@@ -209,14 +215,14 @@ def runModel(
     validation_split= 0.2
     ):
     configText = "EPOCHS={}, patience={}, batch_size={}, verbose={}, validation_split={}".format(EPOCHS, patience, batch_size, verbose, validation_split)
-    tbText.append(tf.summary.text('Config', tf.convert_to_tensor(configText)))
+    tbText.append(lambda: tf.summary.text('Config', tf.convert_to_tensor(configText)))
     data = getData()
     training, test = datasets(data)
     features = getFeatures()
     x_train, y_train, x_test, y_test, x_train_ordered = getAllXYs(training, test, features)
     model = model_func((x_train.shape[1],))
 
-    tbText.append(tf.summary.text('Layers', tf.convert_to_tensor(str(model.layers))))
+    tbText.append(lambda: tf.summary.text('Layers', tf.convert_to_tensor(str(model.layers))))
     model, bestModel = trainModel(model, x_train, y_train, STORE_PATH, EPOCHS=EPOCHS, patience=patience, batch_size=batch_size, verbose=verbose, validation_split=validation_split)
 
     trainingTestingLoss(model, x_test, y_test, "Final Model")
@@ -242,41 +248,41 @@ def storePathMetaData(
     today = datetime.datetime.now()
     
     todayStr = today.strftime("%m_%d_%Y_%H_%M_%S")
-    tbText.append(tf.summary.text('Date', tf.convert_to_tensor(todayStr)))
+    tbText.append(lambda: tf.summary.text('Date', tf.convert_to_tensor(todayStr)))
     modelName = '{}-{}-v{}-{}'.format(todayStr,typeOfNetwork, version, test)
 
-    tbText.append(tf.summary.text('Version-test', tf.convert_to_tensor("v{}-{}".format(version, test))))
-    tbText.append(tf.summary.text('Note', tf.convert_to_tensor(note)))
+    tbText.append(lambda: tf.summary.text('Version-test', tf.convert_to_tensor("v{}-{}".format(version, test))))
+    tbText.append(lambda: tf.summary.text('Note', tf.convert_to_tensor(note)))
 
     STORE_PATH = "logs/{}".format(modelName)
     return STORE_PATH
 
 def writeText(session, tbText, STORE_PATH):
     summary_writer = tf.summary.FileWriter(STORE_PATH)
-    for index, summary_op in enumerate(tbText):
+    for index, func in enumerate(tbText):
+        summary_op = func()
         text = session.run(summary_op)
         summary_writer.add_summary(text, index)
+    tbText.clear()
+
     summary_writer.close()
 
 def main(args, model_func=build_model):
-    session = configureSession()
-    STORE_PATH = storePathMetaData(test=args.test, version=args.version, note=args.note)
-    runModel(STORE_PATH, model_func=model_func, EPOCHS=args.epochs, patience=args.patience, batch_size=args.batch_size, verbose=args.verbose, validation_split=args.validation_split)
-    writeText(session, tbText, STORE_PATH)
-    session.close()
-
+    with configureSession() as sess:
+        sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
+        STORE_PATH = storePathMetaData(test=args.test, version=args.version, note=args.note)
+        runModel(STORE_PATH, model_func=model_func, EPOCHS=args.epochs, patience=args.patience, batch_size=args.batch_size, verbose=args.verbose, validation_split=args.validation_split)
+        writeText(sess, tbText, STORE_PATH)
+    tf.reset_default_graph()
+    
 
 def model1(input_shape):
     model = keras.Sequential([
-        keras.layers.Dense(1024,
+        keras.layers.Dense(2048,
             input_shape=input_shape, activation='relu'),
-        keras.layers.Dense(1024, activation='relu'),
-        keras.layers.Dense(1024, activation='relu'),
-        keras.layers.Dense(1024, activation='relu'),
         keras.layers.Dropout(0.3),
         keras.layers.Dense(1)
     ])
-
     model.compile(loss='mse',
     optimizer='adam',
     metrics=['mape'])
@@ -299,8 +305,23 @@ def model3(input_shape):
     model = keras.Sequential([
         keras.layers.Dense(2048,
             input_shape=input_shape, activation='relu'),
-        keras.layers.Dropout(0.3),
         keras.layers.Dense(2048, activation='relu'),
+        keras.layers.Dense(2048, activation='relu'),
+        keras.layers.Dropout(0.3),
+        keras.layers.Dense(1)
+    ])
+    model.compile(loss='mse',
+    optimizer='adam',
+    metrics=['mape'])
+    return model
+    
+def model4(input_shape):
+    model = keras.Sequential([
+        keras.layers.Dense(2048,
+            input_shape=input_shape, activation='relu'),
+        keras.layers.Dense(2048, activation='relu'),
+        keras.layers.Dense(2048, activation='relu'),
+        keras.layers.Dropout(0.5),
         keras.layers.Dense(1)
     ])
     model.compile(loss='mse',
@@ -310,23 +331,30 @@ def model3(input_shape):
     
 testModels = [
     [
-        model1,
-        "LotsOfBigLayers"
+        model3,
+        "2BigLayers"
     ],
     [
         model2,
-        "twoBigLayers"
+        "1BigLayer"
+    ],
+
+    [
+        model1,
+        "3BigLayers"
     ],
     [
-        model3,
-        "twoBigLayersPastDropout"
-    ] 
+        model4,
+        "3BigLayersWith5Dropout"
+    ],
 ]
 
-args=parser.parse_args()
-for mt in testModels:
-    global tbText
-    tbText = []
-    [model, test] = mt
-    args.test = test
-    main(args, model)
+
+def run():
+    args=parser.parse_args()
+    for mt in testModels:
+        tbText.clear()
+        [model, test] = mt
+        args.test = test
+        main(args, model)
+run()
