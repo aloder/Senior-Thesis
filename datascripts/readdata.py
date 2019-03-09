@@ -1,5 +1,4 @@
 
-#%%
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -9,12 +8,10 @@ from pandas.tseries.holiday import USFederalHolidayCalendar
 from pandas.tseries.offsets import CustomBusinessDay
 us_bd = CustomBusinessDay(calendar=USFederalHolidayCalendar(),  normalize=True)
 
-
-#%%
 def isWorkingDay(x):
     d = us_bd.rollback(date(x.year, x.month, x.day))
     return d.day == x.day and d.month == x.month and d.year == x.year
-with open('data/tusonload.json') as f:
+with open('../data/tusonload.json') as f:
     datafile = json.load(f)
 ldf = pd.DataFrame(datafile['series'][0]['data'], columns=['date', 'load'])
 ldf.date = pd.to_datetime(ldf.date)
@@ -28,8 +25,7 @@ ldf = ldf[ldf.load < 10000][:'2018-07']
 ldf
 
 
-#%%
-with open('data/tusonpredictedload.json') as f:
+with open('../data/tusonpredictedload.json') as f:
     datafile = json.load(f)
 pldf = pd.DataFrame(datafile['series'][0]['data'], columns=['date', 'pload'])
 pldf.rename(columns={'pload': 'day_ahead_load_prediction'}, inplace=True)
@@ -37,12 +33,9 @@ pldf.date = pd.to_datetime(pldf.date)
 pldf.set_index(['date'], inplace=True)
 pldf = pldf.sort_index()
 
-
-#%%
-weatherdf = pd.read_fwf('data/tusonweather.txt')
+weatherdf = pd.read_fwf('../data/tusonweather.txt')
 weatherdf
 
-#%%
 def fix(date):
     minutes = int(str(date)[-2:])
     ret = int(str(date)[:-2])
@@ -104,4 +97,4 @@ laggedday.rename(columns={'load':'last_day_load'}, inplace=True)
 fdf = adf.merge(laggedyear,how='left',on='date').merge(laggedweek,how='left',on='date').merge(laggedday,how='left',on='date')
 
 #%%
-fdf.to_csv('data_out/data_formatted_02.csv')
+fdf.to_csv('../data_out/data_formatted_02.csv')

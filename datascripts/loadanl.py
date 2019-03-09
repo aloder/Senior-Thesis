@@ -16,12 +16,12 @@ def loadModels(path):
 
 def readInput():
     if len(sys.argv) == 1: 
-        l = os.listdir("logs")
+        l = os.listdir("../logs")
         print("pick log file:")
         for index, d in enumerate(l):
             print("[{}] {}".format(index, d))
         inp = input("")
-        return 'logs/'+l[int(inp)]
+        return '../logs/'+l[int(inp)]
 
     return sys.argv[1]
 
