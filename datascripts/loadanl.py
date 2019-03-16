@@ -50,6 +50,11 @@ def createFigures(training, test):
     test.plot(x='date', y=['load','load_prediction'], legend=True, title="test load prediction")
     plt.figure(3)
 
+    testDate = test.set_index('date')
+    hardDay = testDate['2017-05-16 11':'2017-05-17 11']
+    hardDay.plot(y=['load','load_prediction'], legend=True, title="test load prediction hard day")
+    plt.figure(4)
+
     plt.show()
 
 path = readInput()
