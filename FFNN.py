@@ -44,6 +44,16 @@ def getFeatures():
     features += ['last_hour_temperature']
     return features
 
+def getFeatures2():
+    features = ['temperature', 'year', 'work',  'cloud_cover' ]
+    features += ['sin_day', 'cos_day','cos_time', 'sin_time']
+    features += ['sin_day_of_week', 'cos_day_of_week']
+    features += ['last_day_load',  'last_week_load']
+    features += ['day_load_mean', 'day_temperature_mean']
+    features += ['last_hour_load', 'last_hour_temperature']
+    features += ['last_hour_temperature']
+    return features
+
 
 def getXY(data, features):
     data = data[features+['load']].dropna()
@@ -110,13 +120,14 @@ def runModel(
     patience = 30, 
     batch_size= 5000,
     verbose=0,
+    feature_func=getFeatures,
     validation_split= 0.2,
     tbText = []
     ):
     configText = "EPOCHS={}, patience={}, batch_size={}, verbose={}, validation_split={}".format(EPOCHS, patience, batch_size, verbose, validation_split)
     tbText.append(lambda: tf.summary.text('Config', tf.convert_to_tensor(configText)))
     data = datautil.getData()
-    features = getFeatures()
+    features = feature_func()
     data = datautil.normalize(features, data)
     training, test = datautil.datasets(data, tbText=tbText)
 
@@ -142,16 +153,15 @@ def runModel(
 
 
 
-def main(args, model_func=build_model):
+def main(args, model_func=build_model, feature_func=getFeatures):
     tbText = []
     with util.configureSession() as sess:
         sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
         STORE_PATH = util.storePathMetaData(test=args.test, version=args.version, note=args.note, tbText=tbText)
-        runModel(STORE_PATH, tbText=tbText, model_func=model_func, EPOCHS=args.epochs, patience=args.patience, batch_size=args.batch_size, verbose=args.verbose, validation_split=args.validation_split)
+        runModel(STORE_PATH, tbText=tbText, model_func=model_func, EPOCHS=args.epochs, patience=args.patience, batch_size=args.batch_size, verbose=args.verbose, validation_split=args.validation_split, feature_func=feature_func)
         util.writeText(sess, tbText, STORE_PATH)
     tf.reset_default_graph()
     
-
 
 if __name__ == "__main__":
     args=parser.parse_args()

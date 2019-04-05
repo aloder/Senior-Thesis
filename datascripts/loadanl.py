@@ -41,7 +41,7 @@ def loadTrainingAndTestCSV(path):
 
 def createFigures(training, test):
     test.plot(x='load_prediction', y='load', kind='scatter', title="test scatterplot")
-    plt.figure(1)
+    plt.figure("Actual vs. Real")
 
     training.plot(x='date', y=['load','load_prediction', 'dif'], legend=True, title="training load prediction")
     plt.figure(2)
@@ -56,7 +56,9 @@ def createFigures(training, test):
     plt.figure(4)
 
     plt.show()
-
+tensorboardread = """
+    http://localhost:6006/data/plugin/scalars/scalars?tag=batch_mean_absolute_percentage_error&run=03_28_2019_23_07_54-merge-v0.01-relu6-try2&experiment=
+"""
 path = readInput()
 training, test = loadTrainingAndTestCSV(path)
 

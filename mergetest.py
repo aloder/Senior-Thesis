@@ -66,10 +66,6 @@ def build_model4(x_shape, z_shape):
     out = keras.layers.Dense(1)(drop)
     model = keras.models.Model(inputs=[input1, input2], outputs=out)
 
-    model.compile(loss='mse',
-                optimizer='adam',
-                metrics=['mape'])
-    return model
 
 def build_model5(x_shape, z_shape):
     model = keras.Sequential()
@@ -176,8 +172,33 @@ testModels2 = [
     [build_model8, "48seqrelu5dropout+512LSTM", 48],
 ]
 
+def build_modelFinal(x_shape, z_shape):
+    model = keras.Sequential()
+    input1 = keras.layers.Input(shape=x_shape)
+    input2 = keras.layers.Input(shape=z_shape)
+    model1_out = keras.layers.CuDNNLSTM(256)(keras.layers.CuDNNLSTM(256, return_sequences=True)(input1))
+    model2_out = keras.layers.Dense(2048, activation='relu')(input2)
+
+    concat = keras.layers.concatenate([model1_out, model2_out])
+    dense = keras.layers.Dense(2048, activation='relu')(concat)
+    drop = keras.layers.Dropout(0.3)(dense)
+    out = keras.layers.Dense(1)(drop)
+    model = keras.models.Model(inputs=[input1, input2], outputs=out)
+
+    model.compile(loss='mse',
+                optimizer='adam',
+                metrics=['mape'])
+    return model
+    
+testModels4 = [
+    [build_modelFinal, "relu3-try2", 3],
+    [build_modelFinal, "relu6-try2", 6],
+    [build_modelFinal, "relu12-try2", 12],
+    [build_modelFinal, "relu12-try2", 24],
+
+]
 def run(args):
-    for mt in testModels2:
+    for mt in testModels4:
         import merge
         model = mt[0]
         test = mt[1]

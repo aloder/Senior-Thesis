@@ -37,7 +37,8 @@ parser.add_argument('--sequence_size', type=int,
 
 
 def getLSTMFeatures():
-    features = [ 'load_normalized','last_day_load', 'last_week_load','temperature', 'cloud_cover']
+    ##features = [ 'load_normalized','last_day_load', 'last_week_load','temperature', 'cloud_cover']
+    features = [ 'load_normalized']
     return features
 
 def getFeatures():

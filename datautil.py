@@ -39,7 +39,7 @@ def cyclicalTime(data):
     data['cos_day_of_week'] = np.cos(2*np.pi*data.day_of_week/6)
     return data
 
-def getData(path='data_out/data_formatted_cleaned2.csv'):
+def getData(path='data_out/data_formatted_04.csv'):
     data = readData(path)
     data = data.merge(lastHourValues(data), on='date')
     data = dayMean(data)
@@ -69,9 +69,16 @@ def datasets(
     training = data[:'2016'].append(data['2018']).append(data['2017-1']).append(data['2017-3':'2017-4']).append(data['2017-6':'2017-8']).append(data['2017-10']).append(data['2017-12']).reset_index()
     return  training, test
 
-def normalize(features, data):
+def normalize2(features, data):
     for f in features:
         mean = data[f].mean(axis=0)
         std = data[f].std(axis=0)
         data[f] = (data[f] - mean) / std
+    return data
+
+def normalize(features, data):
+    for f in features:
+        ma = data[f].max()
+        mi = data[f].min()
+        data[f] = data[f].apply(lambda x: (x - mi) / (ma - mi))
     return data

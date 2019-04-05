@@ -38,7 +38,7 @@ parser.add_argument('--sequence_size', type=int,
 
 
 def getFeatures():
-    features = [ 'load_normalized','last_day_load', 'last_week_load','temperature', 'cloud_cover']
+    features = [ 'load_normalized', 'last_day_load', 'last_week_load','temperature', 'cloud_cover']
     return features
 
 def build_model(shape):

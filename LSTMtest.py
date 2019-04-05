@@ -34,9 +34,28 @@ testModels2 = [
     [build_model, "48seq", 48],
 
 ]
+def build_modelFinal(shape):
+    model = keras.Sequential()
+    model.add(keras.layers.CuDNNLSTM(256, input_shape=shape, return_sequences=True))
+    model.add(keras.layers.CuDNNLSTM(256))
+    model.add(keras.layers.Dropout(0.1))
+    model.add(keras.layers.Dense(1))
+
+    model.compile(loss='mse',
+                optimizer='adam',
+                metrics=['mape'])
+    return model
+testModels3 = [
+    [build_modelFinal, "5seq", 5],
+    [build_modelFinal, "10seq", 10],
+    [build_modelFinal, "15seq", 15],
+    [build_modelFinal, "20seq", 20]
+]
+
+
 
 def run(args):
-    for mt in testModels2:
+    for mt in testModels3:
         import LSTM
         model = mt[0]
         test = mt[1]

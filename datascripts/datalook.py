@@ -1,6 +1,6 @@
 import pandas as pd
 
-data = pd.read_csv('data_out/data_formatted_02.csv')
+data = pd.read_csv('data_out/data_formatted_04.csv')
 data.date = pd.to_datetime(data.date)
 
 import matplotlib.pyplot as plt
@@ -28,5 +28,5 @@ for e in dropDays:
 
 data.plot(y=['load'], legend=True)
 
-data.to_csv('data_out/data_formatted_cleaned2.csv')
+data.to_csv('data_out/data_formatted_cleaned4.csv')
 plt.show()
